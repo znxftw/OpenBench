@@ -1,0 +1,63 @@
+# Use Ubuntu 24.04 to ensure broad compiler compatibility and native Qt6 support
+FROM ubuntu:24.04
+
+# Avoid interactive prompts during apt install
+ENV DEBIAN_FRONTEND=noninteractive
+# Avoid python writing bytecode
+ENV PYTHONDONTWRITEBYTECODE=1
+# Make cargo and rustup available in PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install core build dependencies, python, git, curl, and Qt6 (needed for cutechess-cli)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    git \
+    curl \
+    unzip \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    python3-venv \
+    # Cutechess dependencies
+    qt6-base-dev \
+    qt6-svg-dev \
+    qt6-base-dev-tools \
+    qt6-5compat-dev \
+    # Network tools
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Pre-install python packages for the OpenBench client (using --break-system-packages for Ubuntu 24.04)
+RUN pip install --no-cache-dir --break-system-packages \
+    requests \
+    psutil \
+    py-cpuinfo
+
+# Install Rust & Cargo (to compile Rust chess engines like rudim)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && rustup --version \
+    && cargo --version
+
+# Clone, compile, and install cutechess-cli
+RUN git clone https://github.com/cutechess/cutechess.git /tmp/cutechess \
+    && cd /tmp/cutechess \
+    && cmake -S . -B build \
+    && cmake --build build --target cli \
+    && cp build/cutechess-cli /usr/local/bin/ \
+    && rm -rf /tmp/cutechess \
+    && cutechess-cli --version
+
+# Set the working directory for the worker
+WORKDIR /worker
+
+# Copy the worker entrypoint script and make it executable
+COPY entrypoint-worker.sh /entrypoint-worker.sh
+RUN chmod +x /entrypoint-worker.sh
+
+# Run the worker entrypoint script
+ENTRYPOINT ["/entrypoint-worker.sh"]

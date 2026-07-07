@@ -1,0 +1,42 @@
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim-bookworm
+
+# Avoid writing .pyc files and buffering stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies required for mysqlclient and wait scripts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-libmysqlclient-dev \
+    build-essential \
+    pkg-config \
+    git \
+    netcat-openbsd \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Pre-install common dependencies to speed up startup.
+# We also run a dynamic pip install -r requirements.txt in the entrypoint script
+# in case the user's fork has specific customizations/additional packages.
+RUN pip install --no-cache-dir \
+    django==4.2 \
+    mysqlclient \
+    gunicorn \
+    requests \
+    urllib3
+
+# Expose Django's default port
+EXPOSE 8000
+
+# Copy the server entrypoint script and make it executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Run the entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]

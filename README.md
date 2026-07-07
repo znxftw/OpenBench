@@ -8,3 +8,20 @@ OpenBench is the primary testing framework used for the development of [Ethereal
 You can join OpenBench's [Discord server](https://discord.com/invite/9MVg7fBTpM) to join the discussion, see what developers are working on and talking about, or to find out how you can contribute to the project and become a part of it. OpenBench is heavily inspired by [Fishtest](https://github.com/glinscott/fishtest). The project is powered by the [Django Web Framework](https://www.djangoproject.com/) and [fastchess](https://github.com/Disservin/fastchess).
 
 Documentation for OpenBench is available in the [Wiki](https://github.com/AndyGrant/OpenBench/wiki)
+
+## Running a Worker on Another Machine
+
+To run an OpenBench worker on a remote machine and connect it to your homelab instance:
+```bash
+docker compose run -d -e SERVER_URL=http://192.168.1.2:8080 -e WORKER_USER=homelab_worker -e WORKER_PASSWORD=<WORKER_PASSWORD> -e WORKER_THREADS=8 worker
+```
+
+## Running on Homelab
+
+```bash
+cp .env.example .env
+```
+Edit values and then 
+```bash
+docker compose up -d
+```
